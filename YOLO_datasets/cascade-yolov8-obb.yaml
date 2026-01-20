@@ -1,0 +1,42 @@
+# ===== YOLOv8 + RCFA + Cascade OBB Head (fixed indices) =====
+nc: 1
+
+backbone:
+  - [-1, 1, Conv, [16, 3, 2]]        # 0
+  - [-1, 1, Conv, [32, 3, 2]]        # 1
+  - [-1, 1, C2f, [32, True]]         # 2
+  - [-1, 1, Conv, [64, 3, 2]]        # 3
+  - [-1, 2, C2f, [64, True]]         # 4  (P3)
+  - [-1, 1, Conv, [128, 3, 2]]       # 5
+  - [-1, 2, C2f, [128, True]]        # 6  (P4)
+  - [-1, 1, Conv, [256, 3, 2]]       # 7
+  - [-1, 1, C2f, [256, True]]        # 8  (P5)
+  - [-1, 1, SPPF, [256, 5]]          # 9  (SPPF)
+
+head:
+  # RCFA (per-backbone-output)
+  - [6, 1, RCFA, [128]]              # 10: RCFA on backbone idx 6 (P4, e.g. 16x16)
+  - [8, 1, RCFA, [256]]              # 11: RCFA on backbone idx 8 (P5 pre, 8x8)
+  - [9, 1, RCFA, [256]]              # 12: RCFA on backbone idx 9 (P5 main, 8x8)
+
+  # FPN (top-down / upsample path) -- USE RCFA outputs where appropriate
+  - [12, 1, nn.Upsample, [None, 2, 'nearest']]   # 13: upsample RCFA(P5 main) -> 16x16
+  - [[13, 10], 1, Concat, [1]]                   # 14: concat (upsampled P5, RCFA(P4))
+  - [-1, 1, C2f, [128]]                          # 15: fused P4
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]   # 16: upsample fused P4 -> 32x32
+  - [[-1, 4], 1, Concat, [1]]                    # 17: concat (upsampled fused P4, backbone idx 4 (P3))
+  - [-1, 1, C2f, [64]]                           # 18: fused P3
+
+  # PAN (bottom-up / downsample path)
+  - [-1, 1, Conv, [64, 3, 2]]                    # 19: downsample fused P3 -> 16x16
+  - [[-1, 15], 1, Concat, [1]]                   # 20: concat (downsampled fused P3, fused P4)
+  - [-1, 1, C2f, [128]]                          # 21: fused P4 (PAN)
+
+  - [-1, 1, Conv, [128, 3, 2]]                   # 22: downsample fused P4 -> 8x8
+  - [[-1, 12], 1, Concat, [1]]                   # 23: concat (downsampled fused P4, RCFA(P5 main))
+  - [-1, 1, C2f, [256]]                          # 24: fused P5 (PAN)
+
+  # Cascade OBB Head (use final three scales)
+  - [[18, 21, 24], 1, OBB_CascadeHead, [nc, 1, 2, True, "mc", False, False]]
+

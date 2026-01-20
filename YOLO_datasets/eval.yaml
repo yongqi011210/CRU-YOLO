@@ -1,0 +1,8 @@
+# ssdd_plus.yaml
+path: E:/mul/data/RSDD
+task: obb
+train: train
+val: test_inshore
+
+names:
+  0: ship

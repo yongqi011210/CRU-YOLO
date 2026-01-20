@@ -1,0 +1,9 @@
+# ssdd_plus.yaml
+path: E:/mul/data/ssdd+
+task: obb
+train: train
+val: test
+
+
+names:
+  0: ship
