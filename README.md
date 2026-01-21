@@ -119,7 +119,7 @@ The full multi-stage refinement process is activated only during training and in
   title   = {CRU-YOLO: Collaborative Refinement for Rotated Object Detection},
   author  = {Kang, Yongqi},
   journal = {Under Review},
-  year    = {2025}
+  year    = {2026}
 }
 ```
 
